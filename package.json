@@ -12,12 +12,77 @@
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
+    "viewsContainers":{
+      "activitybar": [
+        {
+          "id": "impromptu-view-container",
+          "title": "Impromptu",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "impromptu-view-container": [
+        {
+          "id": "impromptu-file-tree",
+          "name": "Project Files",
+          "icon": "resources/icon.svg"
+        },
+        {
+          "id": "impromptu-actions",
+          "name": "Actions",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
     "commands": [
       {
-        "command": "impromptu.helloWorld",
-        "title": "Hello World"
+        "command": "impromptu.openPrepend",
+        "title": "Open .prepend.md"
+      },
+      {
+        "command": "impromptu.openAppend",
+        "title": "Open .append.md"
+      },
+      {
+        "command": "impromptu.toggleSelection",
+        "title": "Toggle Selection",
+        "icon": {
+          "light": "resources/check-light.svg",
+          "dark": "resources/check-dark.svg"
+        }
+      },
+      {
+        "command": "impromptu.generatePrompt",
+        "title": "Generate Prompt"
       }
-    ]
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "impromptu.generatePrompt",
+          "when": "view == impromptu-actions",
+          "group": "navigation"
+        },
+        {
+          "command": "impromptu.openPrepend",
+          "when": "view == impromptu-actions",
+          "group": "navigation"
+        },
+        {
+          "command": "impromptu.openAppend",
+          "when": "view == impromptu-actions",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "impromptu.toggleSelection",
+          "when": "view == impromptu-file-tree",
+          "group": "inline"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
@@ -36,6 +101,7 @@
     "eslint": "^9.25.1",
     "typescript": "^5.8.3",
     "@vscode/test-cli": "^0.0.10",
-    "@vscode/test-electron": "^2.5.2"
+    "@vscode/test-electron": "^2.5.2",
+    "vscode-uri": "^3.1.0"
   }
 }
