@@ -1,64 +1,61 @@
-import * as vscode from 'vscode';
-import * as fs from 'fs';
-import { promises as fsPromises } from 'fs'; // Use promises for async file operations
-import * as path from 'path';
+import { Uri, window, workspace } from "vscode"
+
+// Use TextEncoder and TextDecoder for converting strings to/from Uint8Array
+const textEncoder = new TextEncoder() // Defaults to utf-8
+const textDecoder = new TextDecoder() // Defaults to utf-8
 
 /**
- * Gets the URI of the first workspace folder.
- * @returns The URI of the workspace folder, or undefined if no workspace is open.
+ * Gets the URI of the first workspace folder currently open in VS Code.
+ * @returns The `Uri` of the workspace folder, or `undefined` if no workspace is open.
  */
-export function getWorkspaceUri(): vscode.Uri | undefined {
-    if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
-        return vscode.workspace.workspaceFolders[0].uri;
+export function getWorkspaceUri(): Uri | undefined {
+    if (workspace.workspaceFolders && workspace.workspaceFolders.length > 0) {
+        return workspace.workspaceFolders[0].uri
     }
-    return undefined;
+    return undefined
 }
 
 /**
- * Ensures a file exists at the given URI. If it doesn't, it creates it with initial content.
- * @param fileUri The URI of the file to check/create.
- * @param initialContent The content to write if the file needs to be created.
+ * Ensures a file exists at the given URI. If it doesn't exist, it creates the file.
+ * @param fileUri The `Uri` of the file to check/create.
+ * @param initialContent The string content to write if the file is created.
  */
-export async function ensureFileExists(fileUri: vscode.Uri, initialContent: string = ''): Promise<void> {
+export async function ensureFileExists(fileUri: Uri, initialContent: string = ""): Promise<void> {
     try {
-        await fsPromises.access(fileUri.fsPath); // Check if file exists
-    } catch (error: any) {
-        if (error.code === 'ENOENT') { // File does not exist
-            await fsPromises.writeFile(fileUri.fsPath, initialContent, 'utf8');
-            console.log(`Created file: ${fileUri.fsPath}`);
-        } else {
-            throw error; // Re-throw other errors
-        }
+        await workspace.fs.stat(fileUri)
+    } catch {
+        // If stat fails, the file doesn't exist. Create it.
+        await workspace.fs.writeFile(fileUri, textEncoder.encode(initialContent))
+        console.log(`Impromptu: Created file: ${fileUri.fsPath}`)
     }
 }
 
 /**
- * Reads the content of a file.
- * @param fileUri The URI of the file to read.
+ * Reads the content of a file from the given URI.
+ * @param fileUri The `Uri` of the file to read.
  * @returns A promise that resolves with the file content as a string.
+ * Returns an empty string if the file does not exist.
  */
-export async function readFileContent(fileUri: vscode.Uri): Promise<string> {
+export async function readFileContent(fileUri: Uri): Promise<string> {
     try {
-        const content = await fsPromises.readFile(fileUri.fsPath, 'utf8');
-        return content;
-    } catch (error: any) {
-        if (error.code === 'ENOENT') {
-            vscode.window.showWarningMessage(`Impromptu: File not found: ${fileUri.fsPath}`);
-            return ''; // Return empty string if file doesn't exist
-        }
-        throw new Error(`Error reading file ${fileUri.fsPath}: ${error.message}`);
+        const contentBytes = await workspace.fs.readFile(fileUri)
+        return textDecoder.decode(contentBytes)
+    } catch (error) {
+        window.showWarningMessage(`Impromptu: Could not read file: ${fileUri.fsPath}`)
+        return "" // Return empty string if file doesn't exist or can't be read.
     }
 }
 
 /**
- * Writes content to a file.
- * @param fileUri The URI of the file to write to.
- * @param content The string content to write.
+ * Writes content to a file at the given URI.
+ * @param fileUri The `Uri` of the file to write to.
+ * @param content The string content to write to the file.
+ * @throws An error if writing to the file fails.
  */
-export async function writeFileContent(fileUri: vscode.Uri, content: string): Promise<void> {
+export async function writeFileContent(fileUri: Uri, content: string): Promise<void> {
     try {
-        await fsPromises.writeFile(fileUri.fsPath, content, 'utf8');
+        await workspace.fs.writeFile(fileUri, textEncoder.encode(content))
     } catch (error: any) {
-        throw new Error(`Error writing to file ${fileUri.fsPath}: ${error.message}`);
+        throw new Error(`Error writing to file ${fileUri.fsPath}: ${error.message}`)
     }
 }
