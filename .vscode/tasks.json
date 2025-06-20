@@ -4,6 +4,16 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
+			"label": "Build Web App",
+			"type": "shell",
+			"command": "yarn build",
+			"options": {
+				"cwd": "${workspaceFolder}/web"
+			},
+			"problemMatcher": [],
+			"detail": "Runs 'yarn build' in the /web directory to build the React app."
+		},
+		{
 			"type": "npm",
 			"script": "watch",
 			"problemMatcher": "$ts-webpack-watch",
@@ -29,12 +39,30 @@
 			"group": "build"
 		},
 		{
-			"label": "tasks: watch-tests",
+			"label": "Watch All",
 			"dependsOn": [
 				"npm: watch",
-				"npm: watch-tests"
+				"Watch Web App" // Reference the label of the task we just added
 			],
-			"problemMatcher": []
+			"problemMatcher": [],
+			"group": {
+				"kind": "build",
+				"isDefault": true // Make this the default build task
+			}
+		},
+		{
+			"label": "Watch Web App",
+			"type": "shell",
+			"command": "yarn watch",
+			"options": {
+				"cwd": "${workspaceFolder}/web"
+			},
+			"isBackground": true,
+			"problemMatcher": [],
+			"presentation": {
+				"reveal": "never",
+				"group": "watchers"
+			}
 		}
 	]
 }

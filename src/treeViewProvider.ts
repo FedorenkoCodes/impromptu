@@ -48,7 +48,6 @@ export class ImpromptuTreeDataProvider implements TreeDataProvider<FileTreeItem>
     >()
     readonly onDidChangeTreeData: Event<FileTreeItem | undefined | void> = this._onDidChangeTreeData.event
 
-    private itemsByUri: Map<string, FileTreeItem> = new Map()
     private selectedFileUris: Set<string> = new Set()
 
     constructor(private workspaceRoot: Uri) {}
@@ -96,7 +95,6 @@ export class ImpromptuTreeDataProvider implements TreeDataProvider<FileTreeItem>
                     isSelected
                 )
 
-                this.itemsByUri.set(uri.toString(), treeItem)
                 children.push(treeItem)
             }
         } catch (err: any) {
@@ -114,8 +112,6 @@ export class ImpromptuTreeDataProvider implements TreeDataProvider<FileTreeItem>
     async updateSelectionState(item: FileTreeItem, newState: TreeItemCheckboxState) {
         const isSelected = newState === TreeItemCheckboxState.Checked
 
-        console.log("item:", item)
-
         if (item.isFolder()) {
             const filesToUpdate = await this.getAllFileUrisRecursive(item.uri)
             filesToUpdate.forEach((fileUri) => {
@@ -125,7 +121,8 @@ export class ImpromptuTreeDataProvider implements TreeDataProvider<FileTreeItem>
                     this.selectedFileUris.delete(fileUri.toString())
                 }
             })
-            this.refresh() // Refresh the whole tree to show visual changes
+
+            this.refresh() // Refresh all items
         } else {
             const uriString = item.uri.toString()
             if (isSelected) {
@@ -135,6 +132,7 @@ export class ImpromptuTreeDataProvider implements TreeDataProvider<FileTreeItem>
             }
             item.selected = isSelected
             item.checkboxState = newState
+
             this._onDidChangeTreeData.fire(item) // Refresh just the single item
         }
     }
@@ -176,7 +174,6 @@ export class ImpromptuTreeDataProvider implements TreeDataProvider<FileTreeItem>
      * Refreshes the entire tree view.
      */
     refresh(): void {
-        this.itemsByUri.clear()
         this._onDidChangeTreeData.fire()
     }
 }

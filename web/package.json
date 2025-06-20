@@ -1,0 +1,22 @@
+{
+  "name": "parcel-react-client-starter",
+  "private": true,
+  "version": "0.0.0",
+  "source": "src/index.html",
+  "scripts": {
+    "start": "parcel --no-content-hash",
+    "build": "rimraf ./dist && parcel build --no-content-hash",
+    "watch": "rimraf ./dist && parcel watch --no-content-hash"
+  },
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "parcel": "^2.14.0",
+    "rimraf": "^6.0.1",
+    "@vscode-elements/react-elements": "^1.15.1"
+  }
+}

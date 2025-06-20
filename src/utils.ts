@@ -59,3 +59,12 @@ export async function writeFileContent(fileUri: Uri, content: string): Promise<v
         throw new Error(`Error writing to file ${fileUri.fsPath}: ${error.message}`)
     }
 }
+
+export function getNonce() {
+    let text = ""
+    const possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+    for (let i = 0; i < 32; i++) {
+        text += possible.charAt(Math.floor(Math.random() * possible.length))
+    }
+    return text
+}

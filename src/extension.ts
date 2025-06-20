@@ -2,6 +2,7 @@ import { commands, ExtensionContext, ProgressLocation, TreeCheckboxChangeEvent, 
 
 import { ImpromptuTreeDataProvider, FileTreeItem } from "./treeViewProvider"
 import { getWorkspaceUri, ensureFileExists, readFileContent, writeFileContent } from "./utils"
+import { ActionsViewProvider } from "./actionsViewProvider"
 
 /**
  * Activates the Impromptu extension.
@@ -32,7 +33,6 @@ export function activate(context: ExtensionContext) {
     context.subscriptions.push(
         fileTreeView.onDidChangeCheckboxState((e: TreeCheckboxChangeEvent<FileTreeItem>) => {
             // The event e.items is an array of tuples: [item, state].
-            // We destructure the tuple here. This was the source of the original error.
             for (const [item, newState] of e.items) {
                 if (item) {
                     // Safety check
@@ -47,20 +47,14 @@ export function activate(context: ExtensionContext) {
         impromptuTreeProvider.refresh()
     })
 
-    // Register the "Actions" view (no tree items, just commands in title bar)
-    window.createTreeView("impromptu-actions", {
-        treeDataProvider: {
-            getChildren: () => [], // No items inside the actions view itself
-            getTreeItem: () => {
-                throw new Error("Method not implemented.") // Should not be called
-            },
-        },
-    })
+    const actionsViewProvider = new ActionsViewProvider(context.extensionUri)
+
+    context.subscriptions.push(window.registerWebviewViewProvider(ActionsViewProvider.viewType, actionsViewProvider))
 
     /**
      * Command to open or create and open the .prepend.md file.
      */
-    let openPrependCommand = commands.registerCommand("impromptu.openPrepend", async () => {
+    const openPrependCommand = commands.registerCommand("impromptu.openPrepend", async () => {
         const prependFilePath = Uri.joinPath(workspaceUri, ".prepend.md")
         try {
             await ensureFileExists(prependFilePath, "# Prepend Content\n\n")
@@ -74,7 +68,7 @@ export function activate(context: ExtensionContext) {
     /**
      * Command to open or create and open the .append.md file.
      */
-    let openAppendCommand = commands.registerCommand("impromptu.openAppend", async () => {
+    const openAppendCommand = commands.registerCommand("impromptu.openAppend", async () => {
         const appendFilePath = Uri.joinPath(workspaceUri, ".append.md")
         try {
             await ensureFileExists(appendFilePath, "\n\n# Append Content")

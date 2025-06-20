@@ -31,7 +31,8 @@
         {
           "id": "impromptu-actions",
           "name": "Actions",
-          "icon": "resources/icon.svg"
+          "icon": "resources/icon.svg",
+          "type": "webview"
         }
       ]
     },
@@ -45,16 +46,13 @@
         "title": "Open .append.md"
       },
       {
-        "command": "impromptu.toggleSelection",
-        "title": "Toggle Selection",
-        "icon": {
-          "light": "resources/check-light.svg",
-          "dark": "resources/check-dark.svg"
-        }
-      },
-      {
         "command": "impromptu.generatePrompt",
         "title": "Generate Prompt"
+      },
+      {
+        "command": "impromptu.refresh",
+        "title": "Refresh",
+        "icon": "$(refresh)" 
       }
     ],
     "menus": {
@@ -73,27 +71,27 @@
           "command": "impromptu.openAppend",
           "when": "view == impromptu-actions",
           "group": "navigation"
-        }
-      ],
-      "view/item/context": [
+        },
         {
-          "command": "impromptu.toggleSelection",
+          "command": "impromptu.refresh",
           "when": "view == impromptu-file-tree",
-          "group": "inline"
-      }
-    ]
+          "group": "navigation"
+        }
+      ]
     }
   },
   "scripts": {
     "vscode:prepublish": "yarn run package",
-    "compile": "webpack",
-    "watch": "webpack --watch",
+    "compile": "yarn run build:webview && webpack",
+    "watch": "yarn run watch:webview & webpack --watch",
     "package": "webpack --mode production --devtool hidden-source-map",
     "compile-tests": "tsc -p . --outDir out",
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "yarn run compile-tests && yarn run compile && yarn run lint",
     "lint": "eslint src",
-    "test": "vscode-test"
+    "test": "vscode-test",
+    "build:webview": "cd web && yarn install --frozen-lockfile && yarn run build",
+    "watch:webview": "cd web && yarn install --frozen-lockfile && yarn run start"
   },
   "devDependencies": {
     "@types/vscode": "^1.101.0",
@@ -107,8 +105,6 @@
     "webpack": "^5.99.9",
     "webpack-cli": "^6.0.1",
     "@vscode/test-cli": "^0.0.11",
-    "@vscode/test-electron": "^2.5.2",
-    "vite": "^6.3.5",
-    "@vitejs/plugin-react": "^4.5.2"
+    "@vscode/test-electron": "^2.5.2"
   }
 }
