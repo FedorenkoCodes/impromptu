@@ -1,4 +1,12 @@
-import { Uri, WebviewViewProvider, WebviewView, WebviewViewResolveContext, CancellationToken, Webview } from "vscode"
+import {
+    Uri,
+    WebviewViewProvider,
+    WebviewView,
+    CancellationToken,
+    Webview,
+    commands,
+    WebviewViewResolveContext,
+} from "vscode"
 import * as fs from "fs"
 
 import { getNonce } from "./utils"
@@ -8,7 +16,11 @@ export class ActionsViewProvider implements WebviewViewProvider {
 
     constructor(private readonly _extensionUri: Uri) {}
 
-    public resolveWebviewView(webviewView: WebviewView, context: WebviewViewResolveContext, _token: CancellationToken) {
+    public resolveWebviewView(
+        webviewView: WebviewView,
+        _context: WebviewViewResolveContext,
+        _token: CancellationToken
+    ) {
         webviewView.webview.options = {
             // Allow scripts in the webview
             enableScripts: true,
@@ -17,6 +29,21 @@ export class ActionsViewProvider implements WebviewViewProvider {
         }
 
         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview)
+
+        // A message listener
+        webviewView.webview.onDidReceiveMessage((message) => {
+            switch (message.command) {
+                case "impromptu.generatePrompt":
+                    commands.executeCommand("impromptu.generatePrompt")
+                    return
+                case "impromptu.openPrepend":
+                    commands.executeCommand("impromptu.openPrepend")
+                    return
+                case "impromptu.openAppend":
+                    commands.executeCommand("impromptu.openAppend")
+                    return
+            }
+        }, undefined)
     }
 
     private _getHtmlForWebview(webview: Webview): string {

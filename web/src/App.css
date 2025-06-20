@@ -1,8 +1,11 @@
-html {
-  color-scheme: light dark;
-  font-family: system-ui;
+.app-container {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  align-items: stretch; /* Make buttons stretch to fill width */
+}
+
+.button {
+  width: 100%;
 }

@@ -58,21 +58,6 @@
     "menus": {
       "view/title": [
         {
-          "command": "impromptu.generatePrompt",
-          "when": "view == impromptu-actions",
-          "group": "navigation"
-        },
-        {
-          "command": "impromptu.openPrepend",
-          "when": "view == impromptu-actions",
-          "group": "navigation"
-        },
-        {
-          "command": "impromptu.openAppend",
-          "when": "view == impromptu-actions",
-          "group": "navigation"
-        },
-        {
           "command": "impromptu.refresh",
           "when": "view == impromptu-file-tree",
           "group": "navigation"
