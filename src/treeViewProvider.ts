@@ -2,6 +2,7 @@ import * as path from "path"
 import {
     Event,
     EventEmitter,
+    ExtensionContext,
     FileType,
     TreeDataProvider,
     TreeItem,
@@ -13,6 +14,8 @@ import {
 } from "vscode"
 
 import { FileFilter } from "./fileFilter"
+
+const SELECTION_STATE_KEY = "impromptu.selectedFileUris"
 
 /**
  * Represents an item in the file tree view.
@@ -57,8 +60,26 @@ export class ImpromptuTreeDataProvider implements TreeDataProvider<FileTreeItem>
     private filter: FileFilter
     private filterInitializationPromise: Promise<void> | undefined
 
-    constructor(private workspaceRoot: Uri) {
+    constructor(private workspaceRoot: Uri, private context: ExtensionContext) {
         this.filter = new FileFilter(this.workspaceRoot)
+        this.loadSelectionState()
+    }
+
+    /**
+     * Loads the persisted selection state from the workspace context.
+     */
+    private loadSelectionState(): void {
+        const savedUris = this.context.workspaceState.get<string[]>(SELECTION_STATE_KEY, [])
+        this.selectedFileUris = new Set(savedUris)
+        console.log("Impromptu: Loaded selection state.")
+    }
+
+    /**
+     * Saves the current selection state to the workspace context.
+     */
+    private async saveSelectionState(): Promise<void> {
+        const urisToSave = Array.from(this.selectedFileUris)
+        await this.context.workspaceState.update(SELECTION_STATE_KEY, urisToSave)
     }
 
     /**
@@ -176,10 +197,24 @@ export class ImpromptuTreeDataProvider implements TreeDataProvider<FileTreeItem>
             }
         }
 
+        // Persist the new state and then refresh the view.
+        await this.saveSelectionState()
         this.refresh(false) // Pass false to avoid rebuilding the cache.
     }
 
     getSelectedFiles(): Uri[] {
+        // Prune non-existent files from the selection before returning
+        const existingFiles = new Set<string>()
+        const allFilesUris = Array.from(this.descendantFilesCache.values()).flat()
+        const allFilesStrings = new Set(allFilesUris.map((uri) => uri.toString()))
+
+        for (const selected of this.selectedFileUris) {
+            if (allFilesStrings.has(selected)) {
+                existingFiles.add(selected)
+            }
+        }
+        this.selectedFileUris = existingFiles
+
         return Array.from(this.selectedFileUris).map((uriString) => Uri.parse(uriString))
     }
 

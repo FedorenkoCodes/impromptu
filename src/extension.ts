@@ -20,7 +20,8 @@ export function activate(context: ExtensionContext) {
     }
 
     // Initialize the Tree Data Provider for the file tree view.
-    const impromptuTreeProvider = new ImpromptuTreeDataProvider(workspaceUri)
+    // Pass the extension context to enable state persistence.
+    const impromptuTreeProvider = new ImpromptuTreeDataProvider(workspaceUri, context)
 
     // Register the file tree view and get a reference to it
     const fileTreeView = window.createTreeView("impromptu-file-tree", {
