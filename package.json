@@ -67,6 +67,11 @@
       {
         "command": "impromptu.addFromContext",
         "title": "Add to Impromptu Prompt"
+      },
+      {
+        "command": "impromptu.openSettings",
+        "title": "Open Impromptu Settings",
+        "icon": "$(settings-gear)"
       }
     ],
     "menus": {
@@ -84,6 +89,11 @@
         {
           "command": "impromptu.refresh",
           "when": "view == impromptu-file-tree",
+          "group": "navigation"
+        },
+        {
+          "command": "impromptu.openSettings",
+          "when": "view == impromptu-actions",
           "group": "navigation"
         }
       ],
@@ -106,6 +116,29 @@
           "when": "resourceScheme == file"
         }
       ]
+    },
+    "configuration": {
+      "title": "Impromptu",
+      "properties": {
+        "impromptu.projectStructureHeader": {
+          "type": "string",
+          "default": "--- Project Structure ---",
+          "description": "The header text to display above the ASCII project structure tree in the generated prompt."
+        },
+        "impromptu.startOfFilesHeader": {
+          "type": "string",
+          "default": "--- Start of Files ---",
+          "description": "Optional header text to insert before the content of the first selected file."
+        },
+        "impromptu.fileContentTemplate": {
+          "type": "string",
+          "default": "--- Start of {filePath} ---\n\n{fileContent}\n\n--- End of {filePath} ---",
+          "description": "The template for wrapping each selected file's content. Use {filePath} and {fileContent} as placeholders.",
+          "editPresentation": "multilineText",
+          "pattern": "[\\s\\S]*\\{filePath\\}[\\s\\S]*\\{fileContent\\}[\\s\\S]*|[\\s\\S]*\\{fileContent\\}[\\s\\S]*\\{filePath\\}[\\s\\S]*",
+          "patternErrorMessage": "Template must include both {filePath} and {fileContent} placeholders."
+        }
+      }
     }
   },
   "scripts": {

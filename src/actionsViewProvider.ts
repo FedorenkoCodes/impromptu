@@ -48,6 +48,9 @@ export class ActionsViewProvider implements WebviewViewProvider {
                 case "impromptu.openAppend":
                     commands.executeCommand("impromptu.openAppend")
                     return
+                case "impromptu.openSettings":
+                    commands.executeCommand("impromptu.openSettings")
+                    return
             }
         }, undefined)
     }
