@@ -15,6 +15,16 @@ export class FileTreeItem extends TreeItem {
         this.resourceUri = uri
         this.description = workspace.asRelativePath(uri, false)
         this.tooltip = this.uri.fsPath
+
+        // If this item is a file (not expandable), assign the 'vscode.open' command to it.
+        // This makes the tree item clickable to open the file in the editor.
+        if (this.collapsibleState === TreeItemCollapsibleState.None) {
+            this.command = {
+                command: "vscode.open",
+                title: "Open File",
+                arguments: [this.uri],
+            }
+        }
     }
 
     /**
