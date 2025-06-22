@@ -196,6 +196,35 @@ export class ImpromptuTreeDataProvider implements TreeDataProvider<FileTreeItem>
         this.refresh(false) // Pass false to avoid rebuilding the cache.
     }
 
+    /**
+     * Selects all non-ignored files in the workspace.
+     */
+    public async selectAll(): Promise<void> {
+        await this.ensureReady() // Make sure the file cache is built
+        const allFiles = Array.from(this.descendantFilesCache.values()).flat()
+        for (const fileUri of allFiles) {
+            this.selectedFileUris.add(fileUri.toString())
+        }
+        await this.saveSelectionState()
+        await this.recalculateAndNotify()
+        this.refresh(false)
+        window.showInformationMessage("Impromptu: All files have been selected.")
+    }
+
+    /**
+     * Clears all selections in the tree view.
+     */
+    public async clearSelection(): Promise<void> {
+        if (this.selectedFileUris.size === 0) {
+            return // Nothing to clear
+        }
+        this.selectedFileUris.clear()
+        await this.saveSelectionState()
+        await this.recalculateAndNotify()
+        this.refresh(false)
+        window.showInformationMessage("Impromptu: All selections have been cleared.")
+    }
+
     getSelectedFiles(): Uri[] {
         const allKnownFiles = new Set(
             Array.from(this.descendantFilesCache.values())

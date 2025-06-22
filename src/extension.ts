@@ -75,8 +75,18 @@ export function activate(context: ExtensionContext) {
     )
 
     // Register a command to refresh the tree view
-    let refreshCommand = commands.registerCommand("impromptu.refresh", () => {
+    const refreshCommand = commands.registerCommand("impromptu.refresh", () => {
         impromptuTreeProvider.refresh()
+    })
+
+    // Register a command to clear all selections
+    const clearSelectionCommand = commands.registerCommand("impromptu.clearSelection", () => {
+        impromptuTreeProvider.clearSelection()
+    })
+
+    // Register a command to select all files
+    const selectAllCommand = commands.registerCommand("impromptu.selectAll", () => {
+        impromptuTreeProvider.selectAll()
     })
 
     context.subscriptions.push(window.registerWebviewViewProvider(ActionsViewProvider.viewType, actionsViewProvider))
@@ -184,7 +194,14 @@ export function activate(context: ExtensionContext) {
     )
 
     // Add disposables to the context so they are cleaned up when the extension is deactivated.
-    context.subscriptions.push(openPrependCommand, openAppendCommand, generatePromptCommand, refreshCommand)
+    context.subscriptions.push(
+        openPrependCommand,
+        openAppendCommand,
+        generatePromptCommand,
+        refreshCommand,
+        clearSelectionCommand,
+        selectAllCommand
+    )
 }
 
 /**

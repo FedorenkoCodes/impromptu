@@ -53,10 +53,30 @@
         "command": "impromptu.refresh",
         "title": "Refresh",
         "icon": "$(refresh)" 
+      },
+      {
+        "command": "impromptu.clearSelection",
+        "title": "Clear Selection",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "impromptu.selectAll",
+        "title": "Select All",
+        "icon": "$(check-all)"
       }
     ],
     "menus": {
       "view/title": [
+        {
+          "command": "impromptu.selectAll",
+          "when": "view == impromptu-file-tree",
+          "group": "navigation"
+        },
+        {
+          "command": "impromptu.clearSelection",
+          "when": "view == impromptu-file-tree",
+          "group": "navigation"
+        },
         {
           "command": "impromptu.refresh",
           "when": "view == impromptu-file-tree",
