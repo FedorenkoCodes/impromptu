@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { VscodeButton, VscodeTextarea, VscodeCheckbox } from "@vscode-elements/react-elements"
+import { VscodeButton, VscodeTextarea, VscodeCheckbox, VscodeLabel } from "@vscode-elements/react-elements"
 
 import "./App.css"
 
@@ -7,107 +7,123 @@ const vscode = acquireVsCodeApi()
 
 // Define the shape of the state object for persistence
 interface AppState {
-	shouldCopy?: boolean
-	includeAsciiTree?: boolean
+    shouldCopy?: boolean
+    includeAsciiTree?: boolean
+    additionalText?: string
 }
 
 export function App() {
-	const [additionalText, setAdditionalText] = useState("")
-	const [filesCharCount, setFilesCharCount] = useState(0)
-	const [shouldCopy, setShouldCopy] = useState(false)
-	const [includeAsciiTree, setIncludeAsciiTree] = useState(false)
+    const [additionalText, setAdditionalText] = useState("")
+    const [filesCharCount, setFilesCharCount] = useState(0)
+    const [shouldCopy, setShouldCopy] = useState(false)
+    const [includeAsciiTree, setIncludeAsciiTree] = useState(false)
 
-	useEffect(() => {
-		// Listener for messages from the extension host
-		const handleMessage = (event: MessageEvent) => {
-			const message = event.data
-			if (message.command === "updateCharCount") {
-				setFilesCharCount(message.count)
-			}
-		}
+    useEffect(() => {
+        // Listener for messages from the extension host
+        const handleMessage = (event: MessageEvent) => {
+            const message = event.data
+            if (message.command === "updateCharCount") {
+                setFilesCharCount(message.count)
+            }
+        }
 
-		window.addEventListener("message", handleMessage)
+        window.addEventListener("message", handleMessage)
 
-		// Restore persisted state when the webview is first loaded
-		const previousState = vscode.getState() as AppState
-		if (previousState) {
-			setShouldCopy(previousState.shouldCopy || false)
-			setIncludeAsciiTree(previousState.includeAsciiTree || false)
-		}
+        // Restore persisted state when the webview is first loaded
+        const previousState = vscode.getState() as AppState
+        if (previousState) {
+            setShouldCopy(previousState.shouldCopy || false)
+            setIncludeAsciiTree(previousState.includeAsciiTree || false)
+            setAdditionalText(previousState.additionalText || "")
+        }
 
-		return () => {
-			window.removeEventListener("message", handleMessage)
-		}
-	}, [])
+        return () => {
+            window.removeEventListener("message", handleMessage)
+        }
+    }, [])
 
-	const totalCharCount = filesCharCount + additionalText.length
+    const totalCharCount = filesCharCount + additionalText.length
 
-	const handleCheckboxChange = (
-		e: any,
-		setter: React.Dispatch<React.SetStateAction<boolean>>,
-		stateKey: keyof AppState
-	) => {
-		const isChecked = e.target.checked
-		setter(isChecked)
-		// Persist the new state for all checkboxes
-		vscode.setState({
-			...Object.assign({}, vscode.getState()),
-			[stateKey]: isChecked,
-		})
-	}
+    const handleCheckboxChange = (
+        e: any,
+        setter: React.Dispatch<React.SetStateAction<boolean>>,
+        stateKey: keyof AppState
+    ) => {
+        const isChecked = e.target.checked
+        setter(isChecked)
+        // Persist the new state for all checkboxes
+        vscode.setState({
+            ...Object.assign({}, vscode.getState()),
+            [stateKey]: isChecked,
+        })
+    }
 
-	const handleGenerateCommand = () => {
-		vscode.postMessage({
-			command: "impromptu.generatePrompt",
-			text: additionalText,
-			shouldCopy: shouldCopy,
-			includeAsciiTree: includeAsciiTree,
-		})
-	}
+    const handleTextChange = (e: any) => {
+        const newText = e.target.value
+        setAdditionalText(newText)
+        vscode.setState({
+            ...Object.assign({}, vscode.getState()),
+            additionalText: newText,
+        })
+    }
 
-	// A handler for commands without a payload
-	const handleSimpleCommand = (command: string) => {
-		vscode.postMessage({
-			command: command,
-		})
-	}
+    const handleGenerateCommand = () => {
+        vscode.postMessage({
+            command: "impromptu.generatePrompt",
+            text: additionalText,
+            shouldCopy: shouldCopy,
+            includeAsciiTree: includeAsciiTree,
+        })
+    }
 
-	return (
-		<div className="app-container">
-			<VscodeButton className="button" onClick={handleGenerateCommand}>
-					Generate Prompt
-				</VscodeButton>
+    // A handler for commands without a payload
+    const handleSimpleCommand = (command: string) => {
+        vscode.postMessage({
+            command: command,
+        })
+    }
 
-			<div className="generate-container">
-				<VscodeCheckbox checked={shouldCopy} onChange={(e) => handleCheckboxChange(e, setShouldCopy, "shouldCopy")}>
-					Copy
-				</VscodeCheckbox>
-				<VscodeCheckbox
-					checked={includeAsciiTree}
-					onChange={(e) => handleCheckboxChange(e, setIncludeAsciiTree, "includeAsciiTree")}
-				>
-					ASCII paths
-				</VscodeCheckbox>
-			</div>
+    return (
+        <div className="app-container">
+            <VscodeButton className="button" onClick={handleGenerateCommand}>
+                Generate Prompt
+            </VscodeButton>
 
-			<div className="char-counter">
-				<p>Total characters: {totalCharCount.toLocaleString()}</p>
-				<p className="char-counter-note">(Roughly {Math.ceil(totalCharCount / 4).toLocaleString()} tokens)</p>
-			</div>
+            <div className="generate-container">
+                <VscodeCheckbox
+                    checked={shouldCopy}
+                    onChange={(e) => handleCheckboxChange(e, setShouldCopy, "shouldCopy")}
+                >
+                    Copy
+                </VscodeCheckbox>
+                <VscodeCheckbox
+                    checked={includeAsciiTree}
+                    onChange={(e) => handleCheckboxChange(e, setIncludeAsciiTree, "includeAsciiTree")}
+                >
+                    ASCII paths
+                </VscodeCheckbox>
+            </div>
 
-			<VscodeTextarea
-				className="textarea"
-				value={additionalText}
-				onInput={(e: any) => setAdditionalText(e.target.value)}
-				rows={5}
-				placeholder="Add any additional instructions here. Will be added to the end of the prompt..."
-			></VscodeTextarea>
-			<VscodeButton className="button" secondary onClick={() => handleSimpleCommand("impromptu.openPrepend")}>
-				Open .prepend.md
-			</VscodeButton>
-			<VscodeButton className="button" secondary onClick={() => handleSimpleCommand("impromptu.openAppend")}>
-				Open .append.md
-			</VscodeButton>
-		</div>
-	)
+            <div className="char-counter">
+                <p>Total characters: {totalCharCount.toLocaleString()}</p>
+                <p className="char-counter-note">(Roughly {Math.ceil(totalCharCount / 4).toLocaleString()} tokens)</p>
+            </div>
+
+            <VscodeLabel>
+              <VscodeTextarea
+                  className="textarea"
+                  value={additionalText}
+                  onInput={handleTextChange}
+                  rows={5}
+                  placeholder="Add any additional instructions here. Will be added to the end of the prompt..."
+              ></VscodeTextarea>
+            </VscodeLabel>
+            <VscodeButton className="button" secondary onClick={() => handleSimpleCommand("impromptu.openPrepend")}>
+                Open .prepend.md
+            </VscodeButton>
+            <VscodeButton className="button" secondary onClick={() => handleSimpleCommand("impromptu.openAppend")}>
+                Open .append.md
+            </VscodeButton>
+        </div>
+    )
 }
