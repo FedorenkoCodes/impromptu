@@ -1,4 +1,13 @@
-import { commands, ExtensionContext, ProgressLocation, TreeCheckboxChangeEvent, Uri, window, workspace } from "vscode"
+import {
+    commands,
+    env,
+    ExtensionContext,
+    ProgressLocation,
+    TreeCheckboxChangeEvent,
+    Uri,
+    window,
+    workspace,
+} from "vscode"
 
 import { ImpromptuTreeDataProvider, FileTreeItem } from "./treeViewProvider"
 import { getWorkspaceUri, ensureFileExists, readFileContent, writeFileContent } from "./utils"
@@ -106,7 +115,7 @@ export function activate(context: ExtensionContext) {
      */
     let generatePromptCommand = commands.registerCommand(
         "impromptu.generatePrompt",
-        async (additionalText?: string) => {
+        async (additionalText?: string, shouldCopy?: boolean) => {
             const selectedFiles = impromptuTreeProvider.getSelectedFiles()
             if (selectedFiles.length === 0) {
                 window.showInformationMessage("Impromptu: No files selected to generate prompt.")
@@ -154,11 +163,18 @@ export function activate(context: ExtensionContext) {
                         const outputFilePath = Uri.joinPath(workspaceUri, outputFileName)
                         await writeFileContent(outputFilePath, mergedContent)
 
+                        if (shouldCopy) {
+                            await env.clipboard.writeText(mergedContent)
+                        }
+
                         // Open the generated file
                         const document = await workspace.openTextDocument(outputFilePath)
                         await window.showTextDocument(document)
 
-                        window.showInformationMessage(`Impromptu: Prompt generated successfully in ${outputFileName}!`)
+                        // Show a more informative message
+                        const baseMessage = `Impromptu: Prompt generated in ${outputFileName}`
+                        const finalMessage = shouldCopy ? `${baseMessage} and copied to clipboard!` : `${baseMessage}!`
+                        window.showInformationMessage(finalMessage)
                     } catch (error: any) {
                         window.showErrorMessage(`Impromptu: Failed to generate prompt: ${error.message}`)
                     }

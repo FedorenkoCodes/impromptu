@@ -35,7 +35,7 @@ export class ActionsViewProvider implements WebviewViewProvider {
         webviewView.webview.onDidReceiveMessage((message) => {
             switch (message.command) {
                 case "impromptu.generatePrompt":
-                    commands.executeCommand("impromptu.generatePrompt", message.text)
+                    commands.executeCommand("impromptu.generatePrompt", message.text, message.shouldCopy)
                     return
                 case "impromptu.openPrepend":
                     commands.executeCommand("impromptu.openPrepend")
