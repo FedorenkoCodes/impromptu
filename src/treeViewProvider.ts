@@ -1,5 +1,6 @@
 import * as path from "path"
 import {
+    commands,
     Event,
     EventEmitter,
     ExtensionContext,
@@ -17,6 +18,7 @@ import { buildFileCache } from "./workspaceScanner"
 import { calculateTotalPromptSize } from "./promptCalculator"
 
 const SELECTION_STATE_KEY = "impromptu.selectedFileUris"
+const GITIGNORE_STATE_KEY = "impromptu.useGitignore"
 
 /**
  * Provides data for the Impromptu file tree view, coordinating the state
@@ -30,6 +32,7 @@ export class ImpromptuTreeDataProvider implements TreeDataProvider<FileTreeItem>
     readonly onSelectionDidChange: Event<SelectionChangeEvent> = this._onSelectionDidChange.event
 
     private selectedFileUris: Set<string> = new Set()
+    private useGitignore: boolean = true
 
     // Cache to hold all descendant file URIs for each directory.
     private descendantFilesCache: Map<string, Uri[]> = new Map()
@@ -40,6 +43,7 @@ export class ImpromptuTreeDataProvider implements TreeDataProvider<FileTreeItem>
     constructor(private workspaceRoot: Uri, private context: ExtensionContext) {
         this.filter = new FileFilter(this.workspaceRoot)
         this.loadSelectionState()
+        this.loadGitignoreState()
     }
 
     /**
@@ -50,6 +54,15 @@ export class ImpromptuTreeDataProvider implements TreeDataProvider<FileTreeItem>
         this.selectedFileUris = new Set(savedUris)
         console.log("Impromptu: Loaded selection state.")
         this.recalculateAndNotify()
+    }
+
+    /**
+     * Loads the persisted .gitignore toggle state from the workspace context.
+     */
+    private loadGitignoreState(): void {
+        this.useGitignore = this.context.workspaceState.get<boolean>(GITIGNORE_STATE_KEY, true)
+        commands.executeCommand("setContext", "impromptu:gitignoreEnabled", this.useGitignore)
+        console.log(`Impromptu: Loaded .gitignore filter state: ${this.useGitignore}`)
     }
 
     /**
@@ -84,7 +97,7 @@ export class ImpromptuTreeDataProvider implements TreeDataProvider<FileTreeItem>
      */
     private async ensureReady(): Promise<void> {
         if (!this.filterInitializationPromise) {
-            this.filterInitializationPromise = this.filter.initialize()
+            this.filterInitializationPromise = this.filter.initialize(this.useGitignore)
         }
         await this.filterInitializationPromise
 
@@ -197,6 +210,18 @@ export class ImpromptuTreeDataProvider implements TreeDataProvider<FileTreeItem>
     }
 
     /**
+     * Toggles the use of .gitignore for filtering, saves the state, and refreshes the tree.
+     */
+    public async toggleGitignore(): Promise<void> {
+        this.useGitignore = !this.useGitignore
+        await this.context.workspaceState.update(GITIGNORE_STATE_KEY, this.useGitignore)
+        await commands.executeCommand("setContext", "impromptu:gitignoreEnabled", this.useGitignore)
+        const stateMsg = this.useGitignore ? "enabled" : "disabled"
+        window.showInformationMessage(`Impromptu: .gitignore filter is now ${stateMsg}.`)
+        this.refresh(true) // Rebuild cache and refresh view
+    }
+
+    /**
      * Adds one or more files/folders to the current selection from an external source, like a context menu.
      * @param uris The list of URIs to add.
      */
@@ -290,10 +315,11 @@ export class ImpromptuTreeDataProvider implements TreeDataProvider<FileTreeItem>
     refresh(rebuildCache: boolean = true): void {
         if (rebuildCache) {
             // Clear state to allow re-initialization
+            this.filter = new FileFilter(this.workspaceRoot)
             this.filterInitializationPromise = undefined
             this.descendantFilesCache.clear()
         }
-        
+
         // Firing the event will cause getChildren to run, which handles re-initialization.
         this._onDidChangeTreeData.fire()
     }

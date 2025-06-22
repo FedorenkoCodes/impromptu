@@ -1,5 +1,5 @@
 import { Uri, workspace } from "vscode"
-import { TextDecoder } from 'util'
+import { TextDecoder } from "util"
 import ignore, { Ignore } from "ignore"
 import * as path from "path"
 
@@ -16,10 +16,7 @@ export class FileFilter {
     private static readonly defaultIgnores = [
         // Common dev/OS files
         ".git",
-        ".vscode",
         ".DS_Store",
-        "node_modules",
-        "*.log",
 
         // Common binary/unwanted file types
         "*.jpeg",
@@ -42,9 +39,14 @@ export class FileFilter {
 
     /**
      * Asynchronously reads the .gitignore file from the workspace root
-     * and adds its rules to the filter.
+     * and adds its rules to the filter, if requested.
+     * @param useGitignore If true, .gitignore rules will be loaded.
      */
-    public async initialize(): Promise<void> {
+    public async initialize(useGitignore: boolean): Promise<void> {
+        if (!useGitignore) {
+            console.log("Impromptu: Skipping .gitignore file by user choice.")
+            return
+        }
         try {
             const gitignoreUri = Uri.joinPath(this.workspaceRoot, ".gitignore")
             const gitignoreContentBytes = await workspace.fs.readFile(gitignoreUri)

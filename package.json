@@ -12,6 +12,12 @@
   "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {
+    "contexts": {
+      "impromptu:gitignoreEnabled": {
+        "type": "boolean",
+        "description": "True when .gitignore filtering is enabled for Impromptu."
+      }
+    },
     "viewsContainers": {
       "activitybar": [
         {
@@ -72,10 +78,30 @@
         "command": "impromptu.openSettings",
         "title": "Open Impromptu Settings",
         "icon": "$(settings-gear)"
+      },
+      {
+        "command": "impromptu.disableGitignoreFilter",
+        "title": "Disable .gitignore Filter",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "impromptu.enableGitignoreFilter",
+        "title": "Enable .gitignore Filter",
+        "icon": "$(circle-slash)"
       }
     ],
     "menus": {
       "view/title": [
+        {
+          "command": "impromptu.disableGitignoreFilter",
+          "when": "view == impromptu-file-tree && impromptu:gitignoreEnabled",
+          "group": "navigation"
+        },
+        {
+          "command": "impromptu.enableGitignoreFilter",
+          "when": "view == impromptu-file-tree && !impromptu:gitignoreEnabled",
+          "group": "navigation"
+        },
         {
           "command": "impromptu.selectAll",
           "when": "view == impromptu-file-tree",
