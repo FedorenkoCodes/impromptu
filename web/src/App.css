@@ -1,11 +1,17 @@
 .app-container {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 1rem;
-  align-items: stretch; /* Make buttons stretch to fill width */
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem;
+    align-items: stretch;
 }
 
 .button {
-  width: 100%;
+    width: 100%;
+}
+
+.textarea {
+    width: 100%;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
 }

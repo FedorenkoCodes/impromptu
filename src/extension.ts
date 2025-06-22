@@ -84,60 +84,68 @@ export function activate(context: ExtensionContext) {
      * Command to generate the merged prompt markdown file.
      * Reads .prepend.md, selected files, and .append.md, then combines them into a new file.
      */
-    let generatePromptCommand = commands.registerCommand("impromptu.generatePrompt", async () => {
-        const selectedFiles = impromptuTreeProvider.getSelectedFiles()
-        if (selectedFiles.length === 0) {
-            window.showInformationMessage("Impromptu: No files selected to generate prompt.")
-            return
-        }
-
-        window.withProgress(
-            {
-                location: ProgressLocation.Notification,
-                title: "Generating Impromptu Prompt...",
-                cancellable: false,
-            },
-            async (progress) => {
-                progress.report({ message: "Reading content..." })
-
-                let mergedContent = ""
-                const prependFilePath = Uri.joinPath(workspaceUri, ".prepend.md")
-                const appendFilePath = Uri.joinPath(workspaceUri, ".append.md")
-
-                try {
-                    // 1. Read .prepend.md content
-                    await ensureFileExists(prependFilePath, "# Prepend Content\n\n")
-                    mergedContent += (await readFileContent(prependFilePath)) + "\n\n"
-
-                    // 2. Read selected files content
-                    for (const filePath of selectedFiles) {
-                        const relativePath = workspace.asRelativePath(filePath, false)
-                        mergedContent += `--- Start of ${relativePath} ---\n\n`
-                        mergedContent += (await readFileContent(filePath)) + "\n\n"
-                        mergedContent += `--- End of ${relativePath} ---\n\n`
-                    }
-
-                    // 3. Read .append.md content
-                    await ensureFileExists(appendFilePath, "\n\n# Append Content")
-                    mergedContent += await readFileContent(appendFilePath)
-
-                    // 4. Write to a new markdown file
-                    const timestamp = new Date().toISOString().replace(/[:.]/g, "-")
-                    const outputFileName = `impromptu_prompt_${timestamp}.md`
-                    const outputFilePath = Uri.joinPath(workspaceUri, outputFileName)
-                    await writeFileContent(outputFilePath, mergedContent)
-
-                    // Open the generated file
-                    const document = await workspace.openTextDocument(outputFilePath)
-                    await window.showTextDocument(document)
-
-                    window.showInformationMessage(`Impromptu: Prompt generated successfully in ${outputFileName}!`)
-                } catch (error: any) {
-                    window.showErrorMessage(`Impromptu: Failed to generate prompt: ${error.message}`)
-                }
+    let generatePromptCommand = commands.registerCommand(
+        "impromptu.generatePrompt",
+        async (additionalText?: string) => {
+            const selectedFiles = impromptuTreeProvider.getSelectedFiles()
+            if (selectedFiles.length === 0) {
+                window.showInformationMessage("Impromptu: No files selected to generate prompt.")
+                return
             }
-        )
-    })
+
+            window.withProgress(
+                {
+                    location: ProgressLocation.Notification,
+                    title: "Generating Impromptu Prompt...",
+                    cancellable: false,
+                },
+                async (progress) => {
+                    progress.report({ message: "Reading content..." })
+
+                    let mergedContent = ""
+                    const prependFilePath = Uri.joinPath(workspaceUri, ".prepend.md")
+                    const appendFilePath = Uri.joinPath(workspaceUri, ".append.md")
+
+                    try {
+                        // 1. Read .prepend.md content
+                        await ensureFileExists(prependFilePath, "# Prepend Content\n\n")
+                        mergedContent += (await readFileContent(prependFilePath)) + "\n\n"
+
+                        // 2. Read selected files content
+                        for (const filePath of selectedFiles) {
+                            const relativePath = workspace.asRelativePath(filePath, false)
+                            mergedContent += `--- Start of ${relativePath} ---\n\n`
+                            mergedContent += (await readFileContent(filePath)) + "\n\n"
+                            mergedContent += `--- End of ${relativePath} ---\n\n`
+                        }
+
+                        // 3. Read .append.md content
+                        await ensureFileExists(appendFilePath, "\n\n# Append Content")
+                        mergedContent += await readFileContent(appendFilePath)
+
+                        // 4. Add additional text from the text area if it exists and is not empty
+                        if (additionalText && additionalText.trim().length > 0) {
+                            mergedContent += "\n\n" + additionalText.trim()
+                        }
+
+                        // 5. Write to a new markdown file
+                        const timestamp = new Date().toISOString().replace(/[:.]/g, "-")
+                        const outputFileName = `impromptu_prompt_${timestamp}.md`
+                        const outputFilePath = Uri.joinPath(workspaceUri, outputFileName)
+                        await writeFileContent(outputFilePath, mergedContent)
+
+                        // Open the generated file
+                        const document = await workspace.openTextDocument(outputFilePath)
+                        await window.showTextDocument(document)
+
+                        window.showInformationMessage(`Impromptu: Prompt generated successfully in ${outputFileName}!`)
+                    } catch (error: any) {
+                        window.showErrorMessage(`Impromptu: Failed to generate prompt: ${error.message}`)
+                    }
+                }
+            )
+        }
+    )
 
     // Add disposables to the context so they are cleaned up when the extension is deactivated.
     context.subscriptions.push(openPrependCommand, openAppendCommand, generatePromptCommand, refreshCommand)
