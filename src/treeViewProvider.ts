@@ -135,31 +135,62 @@ export class ImpromptuTreeDataProvider implements TreeDataProvider<FileTreeItem>
     }
 
     /**
-     * Calculates the selection state of a folder based on its descendant files using the cache.
+     * Calculates the selection state of a folder. A folder is "Checked" if and only
+     * if all of its descendant files are selected. Otherwise, it is "Unchecked".
      */
     private getFolderSelectionState(dirUri: Uri): TreeItemCheckboxState {
         const descendantFiles = this.descendantFilesCache.get(dirUri.toString()) || []
-        if (descendantFiles.length === 0) return TreeItemCheckboxState.Unchecked
+        if (descendantFiles.length === 0) {
+            return TreeItemCheckboxState.Unchecked
+        }
 
-        const selectedCount = descendantFiles.filter((fileUri) => this.selectedFileUris.has(fileUri.toString())).length
+        const allSelected = descendantFiles.every((fileUri) => this.selectedFileUris.has(fileUri.toString()))
 
-        if (selectedCount === 0) return TreeItemCheckboxState.Unchecked
-        if (selectedCount === descendantFiles.length) return TreeItemCheckboxState.Checked
-        return TreeItemCheckboxState.Unchecked
+        return allSelected ? TreeItemCheckboxState.Checked : TreeItemCheckboxState.Unchecked
     }
 
+    /**
+     * Updates the selection state based on user interaction with a checkbox.
+     * This method contains the logic to handle folder and file selections gracefully.
+     * @param item The tree item that was checked or unchecked.
+     * @param newState The new state of the checkbox.
+     */
     async updateSelectionState(item: FileTreeItem, newState: TreeItemCheckboxState) {
-        const filesToUpdate = item.isFolder() ? this.descendantFilesCache.get(item.uri.toString()) || [] : [item.uri]
+        if (item.isFolder()) {
+            const descendantFiles = this.descendantFilesCache.get(item.uri.toString()) || []
+            const isCurrentlyFullySelected =
+                descendantFiles.length > 0 &&
+                descendantFiles.every((fileUri) => this.selectedFileUris.has(fileUri.toString()))
 
-        for (const fileUri of filesToUpdate) {
             if (newState === TreeItemCheckboxState.Checked) {
-                this.selectedFileUris.add(fileUri.toString())
+                // When checking a folder, always select all its descendants.
+                for (const fileUri of descendantFiles) {
+                    this.selectedFileUris.add(fileUri.toString())
+                }
             } else {
-                this.selectedFileUris.delete(fileUri.toString())
+                // newState is Unchecked
+                // When unchecking a folder, only deselect all descendants if it was previously FULLY selected.
+                // This prevents a cascade where a folder becoming "partially selected" (and thus visually
+                // unchecked) triggers a full deselection of all its children.
+                if (isCurrentlyFullySelected) {
+                    for (const fileUri of descendantFiles) {
+                        this.selectedFileUris.delete(fileUri.toString())
+                    }
+                }
+                // If the folder was not fully selected (i.e., it was already partially selected or empty),
+                // an "uncheck" event for it is likely a programmatic cascade. We do nothing,
+                // preserving the partial selection.
+            }
+        } else {
+            // For a single file, the logic is straightforward.
+            if (newState === TreeItemCheckboxState.Checked) {
+                this.selectedFileUris.add(item.uri.toString())
+            } else {
+                this.selectedFileUris.delete(item.uri.toString())
             }
         }
 
-        // Persist the new state and then refresh the view.
+        // Persist the new state and then refresh the view and update counts.
         await this.saveSelectionState()
         await this.recalculateAndNotify()
         this.refresh(false) // Pass false to avoid rebuilding the cache.
