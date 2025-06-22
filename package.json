@@ -12,7 +12,7 @@
   "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {
-    "viewsContainers":{
+    "viewsContainers": {
       "activitybar": [
         {
           "id": "impromptu-view-container",
@@ -52,7 +52,7 @@
       {
         "command": "impromptu.refresh",
         "title": "Refresh",
-        "icon": "$(refresh)" 
+        "icon": "$(refresh)"
       },
       {
         "command": "impromptu.clearSelection",
@@ -63,6 +63,10 @@
         "command": "impromptu.selectAll",
         "title": "Select All",
         "icon": "$(check-all)"
+      },
+      {
+        "command": "impromptu.addFromContext",
+        "title": "Add to Impromptu Prompt"
       }
     ],
     "menus": {
@@ -81,6 +85,25 @@
           "command": "impromptu.refresh",
           "when": "view == impromptu-file-tree",
           "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "impromptu.addFromContext",
+          "group": "7_modification"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "impromptu.addFromContext",
+          "group": "7_modification"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "impromptu.addFromContext",
+          "group": "7_modification",
+          "when": "resourceScheme == file"
         }
       ]
     }

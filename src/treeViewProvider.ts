@@ -197,6 +197,50 @@ export class ImpromptuTreeDataProvider implements TreeDataProvider<FileTreeItem>
     }
 
     /**
+     * Adds one or more files/folders to the current selection from an external source, like a context menu.
+     * @param uris The list of URIs to add.
+     */
+    public async addUrisToSelection(uris: Uri[]): Promise<void> {
+        await this.ensureReady()
+
+        const filesToAdd: Uri[] = []
+
+        for (const uri of uris) {
+            try {
+                if (this.filter.shouldIgnore(uri)) continue
+
+                const stat = await workspace.fs.stat(uri)
+                if (stat.type === FileType.Directory) {
+                    const descendantFiles = this.descendantFilesCache.get(uri.toString()) || []
+                    filesToAdd.push(...descendantFiles)
+                } else if (stat.type === FileType.File) {
+                    filesToAdd.push(uri)
+                }
+            } catch (e) {
+                console.warn(`Impromptu: Could not stat URI ${uri.fsPath} when adding from context menu.`, e)
+            }
+        }
+
+        let addedCount = 0
+        for (const fileUri of filesToAdd) {
+            const uriString = fileUri.toString()
+            if (!this.selectedFileUris.has(uriString)) {
+                this.selectedFileUris.add(uriString)
+                addedCount++
+            }
+        }
+
+        if (addedCount > 0) {
+            await this.saveSelectionState()
+            await this.recalculateAndNotify()
+            this.refresh(false)
+            window.showInformationMessage(`Impromptu: Added ${addedCount} file(s) to the prompt.`)
+        } else {
+            window.showInformationMessage("Impromptu: Selected file(s) are already included in the prompt.")
+        }
+    }
+
+    /**
      * Selects all non-ignored files in the workspace.
      */
     public async selectAll(): Promise<void> {
@@ -249,6 +293,7 @@ export class ImpromptuTreeDataProvider implements TreeDataProvider<FileTreeItem>
             this.filterInitializationPromise = undefined
             this.descendantFilesCache.clear()
         }
+        
         // Firing the event will cause getChildren to run, which handles re-initialization.
         this._onDidChangeTreeData.fire()
     }

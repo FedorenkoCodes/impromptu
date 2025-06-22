@@ -89,6 +89,20 @@ export function activate(context: ExtensionContext) {
         impromptuTreeProvider.selectAll()
     })
 
+    // Register a command to add file(s) to the selection from a context menu
+    const addFromContextCommand = commands.registerCommand(
+        "impromptu.addFromContext",
+        (clickedItemUri: Uri, selectedUris: Uri[]) => {
+            // `selectedUris` is populated when right-clicking in the explorer with multiple items selected.
+            // `clickedItemUri` is the specific item that was right-clicked.
+            const urisToAdd =
+                selectedUris && selectedUris.length > 0 ? selectedUris : clickedItemUri ? [clickedItemUri] : []
+            if (urisToAdd.length > 0) {
+                impromptuTreeProvider.addUrisToSelection(urisToAdd)
+            }
+        }
+    )
+
     context.subscriptions.push(window.registerWebviewViewProvider(ActionsViewProvider.viewType, actionsViewProvider))
 
     /**
@@ -200,7 +214,8 @@ export function activate(context: ExtensionContext) {
         generatePromptCommand,
         refreshCommand,
         clearSelectionCommand,
-        selectAllCommand
+        selectAllCommand,
+        addFromContextCommand
     )
 }
 
