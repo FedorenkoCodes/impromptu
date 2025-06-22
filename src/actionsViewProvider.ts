@@ -13,6 +13,7 @@ import { getNonce } from "./utils"
 
 export class ActionsViewProvider implements WebviewViewProvider {
     public static readonly viewType = "impromptu-actions"
+    private _view?: WebviewView
 
     constructor(private readonly _extensionUri: Uri) {}
 
@@ -21,10 +22,10 @@ export class ActionsViewProvider implements WebviewViewProvider {
         _context: WebviewViewResolveContext,
         _token: CancellationToken
     ) {
+        this._view = webviewView
+
         webviewView.webview.options = {
-            // Allow scripts in the webview
             enableScripts: true,
-            // Restrict the webview to only loading content from our extension's `web/dist` directory.
             localResourceRoots: [Uri.joinPath(this._extensionUri, "web", "dist")],
         }
 
@@ -44,6 +45,16 @@ export class ActionsViewProvider implements WebviewViewProvider {
                     return
             }
         }, undefined)
+    }
+
+    /**
+     * Sends the character count to the webview UI.
+     * @param count The total character count of selected files.
+     */
+    public updateCharCount(count: number) {
+        if (this._view) {
+            this._view.webview.postMessage({ command: "updateCharCount", count: count })
+        }
     }
 
     private _getHtmlForWebview(webview: Webview): string {

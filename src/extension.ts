@@ -22,6 +22,28 @@ export function activate(context: ExtensionContext) {
     // Initialize the Tree Data Provider for the file tree view.
     // Pass the extension context to enable state persistence.
     const impromptuTreeProvider = new ImpromptuTreeDataProvider(workspaceUri, context)
+    const actionsViewProvider = new ActionsViewProvider(context.extensionUri)
+
+    // Wire up the event listener to connect the two views
+    context.subscriptions.push(
+        impromptuTreeProvider.onSelectionDidChange((e) => {
+            actionsViewProvider.updateCharCount(e.filesCharCount)
+        })
+    )
+
+    // Create a watcher for all files in the workspace
+    const fileWatcher = workspace.createFileSystemWatcher("**/*")
+
+    // When a file is changed on disk, check if it's relevant and trigger a recount
+    fileWatcher.onDidChange((uri) => {
+        if (impromptuTreeProvider.isUriRelevantToSelection(uri)) {
+            console.log(`Impromptu: Relevant file changed (${uri.fsPath}), recalculating count.`)
+            impromptuTreeProvider.recalculateAndNotify()
+        }
+    })
+
+    // Add the watcher to the subscriptions for proper disposal on deactivation
+    context.subscriptions.push(fileWatcher)
 
     // Register the file tree view and get a reference to it
     const fileTreeView = window.createTreeView("impromptu-file-tree", {
@@ -47,8 +69,6 @@ export function activate(context: ExtensionContext) {
     let refreshCommand = commands.registerCommand("impromptu.refresh", () => {
         impromptuTreeProvider.refresh()
     })
-
-    const actionsViewProvider = new ActionsViewProvider(context.extensionUri)
 
     context.subscriptions.push(window.registerWebviewViewProvider(ActionsViewProvider.viewType, actionsViewProvider))
 

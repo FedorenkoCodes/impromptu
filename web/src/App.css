@@ -10,6 +10,25 @@
     width: 100%;
 }
 
+.char-counter {
+    text-align: center;
+    margin-top: 0.5rem;
+    padding: 0.25rem;
+    font-size: var(--vscode-font-size);
+    background-color: var(--vscode-editor-background);
+    border: 1px solid var(--vscode-editorGroup-border);
+    border-radius: 4px;
+}
+
+.char-counter p {
+    margin: 0.1rem 0;
+}
+
+.char-counter-note {
+    font-size: 0.9em;
+    color: var(--vscode-descriptionForeground);
+}
+
 .textarea {
     width: 100%;
     margin-top: 0.5rem;

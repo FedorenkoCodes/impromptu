@@ -5,52 +5,29 @@ import {
     ExtensionContext,
     FileType,
     TreeDataProvider,
-    TreeItem,
     TreeItemCheckboxState,
-    TreeItemCollapsibleState,
     Uri,
     window,
     workspace,
 } from "vscode"
 
 import { FileFilter } from "./fileFilter"
+import { FileTreeItem, SelectionChangeEvent } from "./treeViewItem"
+import { buildFileCache } from "./workspaceScanner"
+import { calculateTotalPromptSize } from "./promptCalculator"
 
 const SELECTION_STATE_KEY = "impromptu.selectedFileUris"
 
 /**
- * Represents an item in the file tree view.
- * It can be a file or a folder.
- */
-export class FileTreeItem extends TreeItem {
-    constructor(
-        public readonly uri: Uri,
-        public readonly collapsibleState: TreeItemCollapsibleState,
-        public checkboxState: TreeItemCheckboxState = TreeItemCheckboxState.Unchecked
-    ) {
-        super(path.basename(uri.fsPath), collapsibleState)
-        this.resourceUri = uri
-        this.description = workspace.asRelativePath(uri, false)
-        this.tooltip = this.uri.fsPath
-    }
-
-    /**
-     * Determines if the item is a folder.
-     */
-    isFolder(): boolean {
-        return this.collapsibleState !== TreeItemCollapsibleState.None
-    }
-
-    contextValue = this.isFolder() ? "folderItem" : "fileItem"
-}
-
-/**
- * Provides data for the Impromptu file tree view.
+ * Provides data for the Impromptu file tree view, coordinating the state
+ * of selections and delegating file scanning and calculations.
  */
 export class ImpromptuTreeDataProvider implements TreeDataProvider<FileTreeItem> {
-    private _onDidChangeTreeData: EventEmitter<FileTreeItem | undefined | void> = new EventEmitter<
-        FileTreeItem | undefined | void
-    >()
+    private _onDidChangeTreeData: EventEmitter<FileTreeItem | undefined | void> = new EventEmitter()
     readonly onDidChangeTreeData: Event<FileTreeItem | undefined | void> = this._onDidChangeTreeData.event
+
+    private _onSelectionDidChange: EventEmitter<SelectionChangeEvent> = new EventEmitter()
+    readonly onSelectionDidChange: Event<SelectionChangeEvent> = this._onSelectionDidChange.event
 
     private selectedFileUris: Set<string> = new Set()
 
@@ -68,18 +45,37 @@ export class ImpromptuTreeDataProvider implements TreeDataProvider<FileTreeItem>
     /**
      * Loads the persisted selection state from the workspace context.
      */
-    private loadSelectionState(): void {
+    private async loadSelectionState(): Promise<void> {
         const savedUris = this.context.workspaceState.get<string[]>(SELECTION_STATE_KEY, [])
         this.selectedFileUris = new Set(savedUris)
         console.log("Impromptu: Loaded selection state.")
+        this.recalculateAndNotify()
     }
 
     /**
      * Saves the current selection state to the workspace context.
      */
     private async saveSelectionState(): Promise<void> {
-        const urisToSave = Array.from(this.selectedFileUris)
-        await this.context.workspaceState.update(SELECTION_STATE_KEY, urisToSave)
+        await this.context.workspaceState.update(SELECTION_STATE_KEY, Array.from(this.selectedFileUris))
+    }
+
+    public async recalculateAndNotify(): Promise<void> {
+        const filesCharCount = await calculateTotalPromptSize(this.workspaceRoot, this.selectedFileUris)
+        this._onSelectionDidChange.fire({ filesCharCount })
+    }
+
+    public isUriRelevantToSelection(uri: Uri): boolean {
+        if (this.selectedFileUris.has(uri.toString())) {
+            return true
+        }
+        const baseName = path.basename(uri.fsPath)
+        if (
+            (baseName === ".prepend.md" || baseName === ".append.md") &&
+            path.dirname(uri.fsPath) === this.workspaceRoot.fsPath
+        ) {
+            return true
+        }
+        return false
     }
 
     /**
@@ -94,20 +90,15 @@ export class ImpromptuTreeDataProvider implements TreeDataProvider<FileTreeItem>
 
         // If the cache is empty, build it.
         if (this.descendantFilesCache.size === 0 && this.workspaceRoot) {
-            await this.buildCache()
+            this.descendantFilesCache = await buildFileCache(this.workspaceRoot, this.filter)
         }
     }
 
-    getTreeItem(element: FileTreeItem): TreeItem {
+    getTreeItem(element: FileTreeItem): FileTreeItem {
         return element
     }
 
     async getChildren(element?: FileTreeItem): Promise<FileTreeItem[]> {
-        if (!this.workspaceRoot) {
-            return []
-        }
-
-        // Build the cache on the first run or after a refresh.
         await this.ensureReady()
 
         const parentUri = element ? element.uri : this.workspaceRoot
@@ -115,9 +106,7 @@ export class ImpromptuTreeDataProvider implements TreeDataProvider<FileTreeItem>
 
         try {
             const entries = await workspace.fs.readDirectory(parentUri)
-            entries.sort((a, b) => {
-                const [aName, aType] = a
-                const [bName, bType] = b
+            entries.sort(([aName, aType], [bName, bType]) => {
                 if (aType === FileType.Directory && bType !== FileType.Directory) return -1
                 if (aType !== FileType.Directory && bType === FileType.Directory) return 1
                 return aName.localeCompare(bName)
@@ -127,27 +116,16 @@ export class ImpromptuTreeDataProvider implements TreeDataProvider<FileTreeItem>
                 const uri = Uri.joinPath(parentUri, name)
 
                 // The single source of truth for filtering
-                if (this.filter.shouldIgnore(uri)) {
-                    continue
-                }
+                if (this.filter.shouldIgnore(uri)) continue
 
                 const isDir = type === FileType.Directory
+                const checkboxState = isDir
+                    ? this.getFolderSelectionState(uri)
+                    : this.selectedFileUris.has(uri.toString())
+                    ? TreeItemCheckboxState.Checked
+                    : TreeItemCheckboxState.Unchecked
 
-                let checkboxState: TreeItemCheckboxState
-                if (isDir) {
-                    checkboxState = this.getFolderSelectionState(uri)
-                } else {
-                    checkboxState = this.selectedFileUris.has(uri.toString())
-                        ? TreeItemCheckboxState.Checked
-                        : TreeItemCheckboxState.Unchecked
-                }
-
-                const treeItem = new FileTreeItem(
-                    uri,
-                    isDir ? TreeItemCollapsibleState.Collapsed : TreeItemCollapsibleState.None,
-                    checkboxState
-                )
-                children.push(treeItem)
+                children.push(new FileTreeItem(uri, isDir ? 1 : 0, checkboxState))
             }
         } catch (err: any) {
             window.showErrorMessage(`Impromptu: Error reading directory: ${parentUri.fsPath} - ${err.message}`)
@@ -161,36 +139,20 @@ export class ImpromptuTreeDataProvider implements TreeDataProvider<FileTreeItem>
      */
     private getFolderSelectionState(dirUri: Uri): TreeItemCheckboxState {
         const descendantFiles = this.descendantFilesCache.get(dirUri.toString()) || []
-        if (descendantFiles.length === 0) {
-            return TreeItemCheckboxState.Unchecked
-        }
+        if (descendantFiles.length === 0) return TreeItemCheckboxState.Unchecked
 
-        let selectedCount = 0
-        for (const fileUri of descendantFiles) {
-            if (this.selectedFileUris.has(fileUri.toString())) {
-                selectedCount++
-            }
-        }
+        const selectedCount = descendantFiles.filter((fileUri) => this.selectedFileUris.has(fileUri.toString())).length
 
-        if (selectedCount === 0) {
-            return TreeItemCheckboxState.Unchecked
-        }
-        if (selectedCount === descendantFiles.length) {
-            return TreeItemCheckboxState.Checked
-        }
-        // A "mixed" state is not supported well for folder selection logic, so treat it as unchecked.
+        if (selectedCount === 0) return TreeItemCheckboxState.Unchecked
+        if (selectedCount === descendantFiles.length) return TreeItemCheckboxState.Checked
         return TreeItemCheckboxState.Unchecked
     }
 
     async updateSelectionState(item: FileTreeItem, newState: TreeItemCheckboxState) {
-        const isSelected = newState === TreeItemCheckboxState.Checked
-        const filesToUpdate = item.isFolder()
-            ? this.descendantFilesCache.get(item.uri.toString()) || []
-            : // For a file, get its URI from the item itself
-              [item.uri]
+        const filesToUpdate = item.isFolder() ? this.descendantFilesCache.get(item.uri.toString()) || [] : [item.uri]
 
         for (const fileUri of filesToUpdate) {
-            if (isSelected) {
+            if (newState === TreeItemCheckboxState.Checked) {
                 this.selectedFileUris.add(fileUri.toString())
             } else {
                 this.selectedFileUris.delete(fileUri.toString())
@@ -199,22 +161,21 @@ export class ImpromptuTreeDataProvider implements TreeDataProvider<FileTreeItem>
 
         // Persist the new state and then refresh the view.
         await this.saveSelectionState()
+        await this.recalculateAndNotify()
         this.refresh(false) // Pass false to avoid rebuilding the cache.
     }
 
     getSelectedFiles(): Uri[] {
-        // Prune non-existent files from the selection before returning
-        const existingFiles = new Set<string>()
-        const allFilesUris = Array.from(this.descendantFilesCache.values()).flat()
-        const allFilesStrings = new Set(allFilesUris.map((uri) => uri.toString()))
-
-        for (const selected of this.selectedFileUris) {
-            if (allFilesStrings.has(selected)) {
-                existingFiles.add(selected)
+        const allKnownFiles = new Set(
+            Array.from(this.descendantFilesCache.values())
+                .flat()
+                .map((uri) => uri.toString())
+        )
+        this.selectedFileUris.forEach((uri) => {
+            if (!allKnownFiles.has(uri)) {
+                this.selectedFileUris.delete(uri)
             }
-        }
-        this.selectedFileUris = existingFiles
-
+        })
         return Array.from(this.selectedFileUris).map((uriString) => Uri.parse(uriString))
     }
 
@@ -231,51 +192,6 @@ export class ImpromptuTreeDataProvider implements TreeDataProvider<FileTreeItem>
         // Firing the event will cause getChildren to run, which handles re-initialization.
         this._onDidChangeTreeData.fire()
     }
-
-    /**
-     * Populates the cache by recursively scanning the entire workspace.
-     */
-    private async buildCache(): Promise<void> {
-        this.descendantFilesCache.clear()
-        if (this.workspaceRoot) {
-            await this.scanDirectoryForCache(this.workspaceRoot)
-        }
-        console.log("Impromptu: File cache built.")
-    }
-
-    /**
-     * Recursively scans a directory, respecting ignore rules, and populates the cache.
-     */
-    private async scanDirectoryForCache(dirUri: Uri): Promise<Uri[]> {
-        // Base case: Don't scan ignored directories. The root is never ignored.
-        if (dirUri !== this.workspaceRoot && this.filter.shouldIgnore(dirUri)) {
-            return []
-        }
-
-        let descendantFiles: Uri[] = []
-        try {
-            const entries = await workspace.fs.readDirectory(dirUri)
-            for (const [name, type] of entries) {
-                const entryUri = Uri.joinPath(dirUri, name)
-
-                if (this.filter.shouldIgnore(entryUri)) {
-                    continue
-                }
-
-                if (type === FileType.Directory) {
-                    // Recursively scan subdirectory and add its files to the current list
-                    const subDirFiles = await this.scanDirectoryForCache(entryUri)
-                    descendantFiles.push(...subDirFiles)
-                } else if (type === FileType.File) {
-                    descendantFiles.push(entryUri)
-                }
-            }
-        } catch (err: any) {
-            window.showErrorMessage(`Impromptu: Error scanning directory for cache: ${err.message}`)
-        }
-
-        // Store the collected list of files for the current directory
-        this.descendantFilesCache.set(dirUri.toString(), descendantFiles)
-        return descendantFiles
-    }
 }
+
+export { FileTreeItem }
