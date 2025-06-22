@@ -2,12 +2,15 @@
   "name": "impromptu",
   "displayName": "Impromptu",
   "description": "Write prompts for AI LLM from your files",
-  "version": "0.0.1",
+  "repository": "https://github.com/FedorenkoCodes/impromptu",
+  "version": "0.1",
   "engines": {
     "vscode": "^1.101.0"
   },
   "categories": [
-    "Other"
+    "AI",
+		"Chat",
+		"Programming Languages"
   ],
   "activationEvents": [],
   "main": "./dist/extension.js",
