@@ -12,6 +12,7 @@ import {
 import { ImpromptuTreeDataProvider, FileTreeItem } from "./treeViewProvider"
 import { getWorkspaceUri, ensureFileExists, readFileContent, writeFileContent } from "./utils"
 import { ActionsViewProvider } from "./actionsViewProvider"
+import { generateAsciiTree } from "./asciiTree"
 
 /**
  * Activates the Impromptu extension.
@@ -150,9 +151,9 @@ export function activate(context: ExtensionContext) {
      */
     let generatePromptCommand = commands.registerCommand(
         "impromptu.generatePrompt",
-        async (additionalText?: string, shouldCopy?: boolean) => {
+        async (additionalText?: string, shouldCopy?: boolean, includeAsciiTree?: boolean) => {
             const selectedFiles = impromptuTreeProvider.getSelectedFiles()
-            if (selectedFiles.length === 0) {
+            if (selectedFiles.length === 0 && !includeAsciiTree) {
                 window.showInformationMessage("Impromptu: No files selected to generate prompt.")
                 return
             }
@@ -175,7 +176,16 @@ export function activate(context: ExtensionContext) {
                         await ensureFileExists(prependFilePath, "# Prepend Content\n\n")
                         mergedContent += (await readFileContent(prependFilePath)) + "\n\n"
 
-                        // 2. Read selected files content
+                        // 2. Add the ASCII file structure if requested
+                        if (includeAsciiTree) {
+                            progress.report({ message: "Generating file structure..." })
+                            const asciiTree = generateAsciiTree(selectedFiles, workspaceUri)
+                            mergedContent += "--- Project Structure ---\n\n"
+                            mergedContent += "```\n" + asciiTree + "```\n\n"
+                        }
+
+                        // 3. Read selected files content
+                        progress.report({ message: "Reading selected files..." })
                         for (const filePath of selectedFiles) {
                             const relativePath = workspace.asRelativePath(filePath, false)
                             mergedContent += `--- Start of ${relativePath} ---\n\n`
@@ -183,16 +193,16 @@ export function activate(context: ExtensionContext) {
                             mergedContent += `--- End of ${relativePath} ---\n\n`
                         }
 
-                        // 3. Read .append.md content
+                        // 4. Read .append.md content
                         await ensureFileExists(appendFilePath, "\n\n# Append Content")
                         mergedContent += await readFileContent(appendFilePath)
 
-                        // 4. Add additional text from the text area if it exists and is not empty
+                        // 5. Add additional text from the text area if it exists and is not empty
                         if (additionalText && additionalText.trim().length > 0) {
                             mergedContent += "\n\n" + additionalText.trim()
                         }
 
-                        // 5. Write to a new markdown file
+                        // 6. Write to a new markdown file
                         const timestamp = new Date().toISOString().replace(/[:.]/g, "-")
                         const outputFileName = `impromptu_prompt_${timestamp}.md`
                         const outputFilePath = Uri.joinPath(workspaceUri, outputFileName)
