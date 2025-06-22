@@ -51,6 +51,17 @@ export function activate(context: ExtensionContext) {
         }
     })
 
+    // When a file is created or deleted, the entire file structure might have changed.
+    // We need to refresh the tree to show the new state. This also handles renames.
+    fileWatcher.onDidCreate(() => {
+        console.log("Impromptu: File created, refreshing tree view.")
+        impromptuTreeProvider.refresh()
+    })
+    fileWatcher.onDidDelete(() => {
+        console.log("Impromptu: File deleted, refreshing tree view.")
+        impromptuTreeProvider.refresh()
+    })
+
     // Add the watcher to the subscriptions for proper disposal on deactivation
     context.subscriptions.push(fileWatcher)
 
