@@ -140,8 +140,12 @@ export class ImpromptuTreeDataProvider implements TreeDataProvider<FileTreeItem>
         try {
             const entries = await workspace.fs.readDirectory(parentUri)
             entries.sort(([aName, aType], [bName, bType]) => {
-                if (aType === FileType.Directory && bType !== FileType.Directory) return -1
-                if (aType !== FileType.Directory && bType === FileType.Directory) return 1
+                if (aType === FileType.Directory && bType !== FileType.Directory) {
+                    return -1
+                }
+                if (aType !== FileType.Directory && bType === FileType.Directory) {
+                    return 1
+                }
                 return aName.localeCompare(bName)
             })
 
@@ -149,7 +153,9 @@ export class ImpromptuTreeDataProvider implements TreeDataProvider<FileTreeItem>
                 const uri = Uri.joinPath(parentUri, name)
 
                 // The single source of truth for filtering
-                if (this.filter.shouldIgnore(uri)) continue
+                if (this.filter.shouldIgnore(uri)) {
+                    continue
+                }
 
                 const isDir = type === FileType.Directory
                 const checkboxState = isDir
@@ -252,7 +258,9 @@ export class ImpromptuTreeDataProvider implements TreeDataProvider<FileTreeItem>
 
         for (const uri of uris) {
             try {
-                if (this.filter.shouldIgnore(uri)) continue
+                if (this.filter.shouldIgnore(uri)) {
+                    continue
+                }
 
                 const stat = await workspace.fs.stat(uri)
                 if (stat.type === FileType.Directory) {
