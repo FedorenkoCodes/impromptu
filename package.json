@@ -1,6 +1,6 @@
 {
   "name": "impromptu",
-  "displayName": "Impromptu",
+  "displayName": "Impromptu - Prompt Generator",
   "description": "Write prompts for AI LLM from your files",
   "repository": "https://github.com/FedorenkoCodes/impromptu",
   "publisher": "FedorenkoCodes",
