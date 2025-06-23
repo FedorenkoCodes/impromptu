@@ -1,12 +1,9 @@
 # Change Log
 
-All notable changes to the "impromptu" extension will be documented in this file.
+## [0.1.1] - 2025-06-23
 
-The format is based on [Keep a Changelog](http://keepachangelog.com/), and this project adheres to [Semantic Versioning](http://semver.org/).
-
-## [Unreleased]
-
----
+### Fixed
+- Corrected an issue where the file selection state was not being properly restored when the extension was launched.
 
 ## [0.1.0] - 2025-06-23
 
