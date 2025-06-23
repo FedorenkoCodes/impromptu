@@ -54,7 +54,6 @@ export class ImpromptuTreeDataProvider implements TreeDataProvider<FileTreeItem>
         const savedUris = this.context.workspaceState.get<string[]>(SELECTION_STATE_KEY, [])
         this.selectedFileUris = new Set(savedUris)
         console.log("Impromptu: Loaded selection state.")
-        this.recalculateAndNotify()
     }
 
     /**

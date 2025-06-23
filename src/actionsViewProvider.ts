@@ -55,6 +55,9 @@ export class ActionsViewProvider implements WebviewViewProvider {
                 case "impromptu.asciiTreeStateChanged":
                     this._treeDataProvider.setAsciiTreeState(message.state)
                     return
+                case "impromptu.webviewReady":
+                    this._treeDataProvider.recalculateAndNotify()
+                    return
             }
         }, undefined)
     }

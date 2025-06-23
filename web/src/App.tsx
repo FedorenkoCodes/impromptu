@@ -44,6 +44,8 @@ export function App() {
             })
         }
 
+        vscode.postMessage({ command: "impromptu.webviewReady" })
+
         return () => {
             window.removeEventListener("message", handleMessage)
         }
