@@ -4,6 +4,8 @@ Stop manually copy-pasting code into LLMs. **Impromptu** is a powerful VS Code e
 
 Providing the right context is the key to getting great results from AI. Impromptu makes it trivially easy to select files and folders, include your project structure, and wrap it all with your custom instructions into a single, perfect prompt file.
 
+<img src="https://github.com/user-attachments/assets/418d5652-5b7b-486c-a0cb-49929dfcd01e" width="100%" />
+
 ## Core Features
 
   * **⚡ Dynamic & Interactive File Tree:** A custom tree view in the sidebar with checkboxes that automatically updates when you create, delete, or rename files.
