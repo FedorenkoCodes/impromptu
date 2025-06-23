@@ -25,10 +25,9 @@ function buildTree(tree: any, parts: string[]) {
  * A recursive function to render the tree structure into an ASCII string.
  * @param node The current node of the tree to render.
  * @param prefix The string prefix for the current line.
- * @param isRoot True if this is the initial call.
  * @returns The rendered ASCII string for the node.
  */
-function renderTree(node: any, prefix: string = "", isRoot: boolean = false): string {
+function renderTree(node: any, prefix: string = ""): string {
 	let result = ""
 	const keys = Object.keys(node).sort((a, b) => {
 		// Sort so that folders (nodes with children) come before files (empty nodes)

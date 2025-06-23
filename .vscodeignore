@@ -1,7 +1,8 @@
 .vscode/**
 .vscode-test/**
 out/**
-node_modules/**
+**/node_modules/**
+**/.parcel-cache/**
 src/**
 .gitignore
 .yarnrc
