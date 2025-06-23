@@ -3,9 +3,12 @@
 out/**
 **/node_modules/**
 **/.parcel-cache/**
+web/src/**
 src/**
 .gitignore
 .yarnrc
+.append.md
+.prepend.md
 webpack.config.js
 vsc-extension-quickstart.md
 **/tsconfig.json
@@ -13,3 +16,4 @@ vsc-extension-quickstart.md
 **/*.map
 **/*.ts
 **/.vscode-test.*
+**/*.vsix
