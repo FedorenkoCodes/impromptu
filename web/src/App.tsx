@@ -32,9 +32,16 @@ export function App() {
         // Restore persisted state when the webview is first loaded
         const previousState = vscode.getState() as AppState
         if (previousState) {
+            const restoredAsciiTree = previousState.includeAsciiTree || false
             setShouldCopy(previousState.shouldCopy || false)
-            setIncludeAsciiTree(previousState.includeAsciiTree || false)
+            setIncludeAsciiTree(restoredAsciiTree)
             setAdditionalText(previousState.additionalText || "")
+
+            // On first load, ensure the extension backend has the correct state
+            vscode.postMessage({
+                command: "impromptu.asciiTreeStateChanged",
+                state: restoredAsciiTree,
+            })
         }
 
         return () => {
@@ -51,11 +58,18 @@ export function App() {
     ) => {
         const isChecked = e.target.checked
         setter(isChecked)
-        // Persist the new state for all checkboxes
-        vscode.setState({
-            ...Object.assign({}, vscode.getState()),
-            [stateKey]: isChecked,
-        })
+
+        // Persist the state for the webview
+        const currentState = (vscode.getState() as AppState) || {}
+        vscode.setState({ ...currentState, [stateKey]: isChecked })
+
+        // If this is the ASCII tree checkbox, notify the extension backend so it can recalculate
+        if (stateKey === "includeAsciiTree") {
+            vscode.postMessage({
+                command: "impromptu.asciiTreeStateChanged",
+                state: isChecked,
+            })
+        }
     }
 
     const handleTextChange = (e: any) => {
@@ -110,13 +124,13 @@ export function App() {
             </div>
 
             <VscodeLabel>
-              <VscodeTextarea
-                  className="textarea"
-                  value={additionalText}
-                  onInput={handleTextChange}
-                  rows={5}
-                  placeholder="Add any additional instructions here. Will be added to the end of the prompt..."
-              ></VscodeTextarea>
+                <VscodeTextarea
+                    className="textarea"
+                    value={additionalText}
+                    onInput={handleTextChange}
+                    rows={5}
+                    placeholder="Add any additional instructions here. Will be added to the end of the prompt..."
+                ></VscodeTextarea>
             </VscodeLabel>
             <VscodeButton className="button" secondary onClick={() => handleSimpleCommand("impromptu.openPrepend")}>
                 Open .prepend.md

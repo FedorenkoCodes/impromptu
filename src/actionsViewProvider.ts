@@ -10,12 +10,13 @@ import {
 import * as fs from "fs"
 
 import { getNonce } from "./utils"
+import { ImpromptuTreeDataProvider } from "./treeViewProvider"
 
 export class ActionsViewProvider implements WebviewViewProvider {
     public static readonly viewType = "impromptu-actions"
     private _view?: WebviewView
 
-    constructor(private readonly _extensionUri: Uri) {}
+    constructor(private readonly _extensionUri: Uri, private readonly _treeDataProvider: ImpromptuTreeDataProvider) {}
 
     public resolveWebviewView(
         webviewView: WebviewView,
@@ -51,6 +52,9 @@ export class ActionsViewProvider implements WebviewViewProvider {
                 case "impromptu.openSettings":
                     commands.executeCommand("impromptu.openSettings")
                     return
+                case "impromptu.asciiTreeStateChanged":
+                    this._treeDataProvider.setAsciiTreeState(message.state)
+                    return
             }
         }, undefined)
     }
@@ -79,7 +83,9 @@ export class ActionsViewProvider implements WebviewViewProvider {
         } catch (e) {
             console.error("Error reading web/dist directory:", e)
             // Return an error message if the build directory doesn't exist
-            return getErrorHtml("Build files not found. Please run 'yarn compile' and reload the window.")
+            return getErrorHtml(
+                "Build files not found. Please run 'npm run build' or 'yarn build' in the /web directory and reload the window."
+            )
         }
 
         if (!scriptFile || !cssFile) {

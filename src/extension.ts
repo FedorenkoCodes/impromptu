@@ -32,7 +32,8 @@ export function activate(context: ExtensionContext) {
     // Initialize the Tree Data Provider for the file tree view.
     // Pass the extension context to enable state persistence.
     const impromptuTreeProvider = new ImpromptuTreeDataProvider(workspaceUri, context)
-    const actionsViewProvider = new ActionsViewProvider(context.extensionUri)
+    // Pass the tree provider to the actions view provider to enable communication
+    const actionsViewProvider = new ActionsViewProvider(context.extensionUri, impromptuTreeProvider)
 
     // Wire up the event listener to connect the two views
     context.subscriptions.push(
@@ -209,7 +210,6 @@ export function activate(context: ExtensionContext) {
 
                     try {
                         // 1. Read .prepend.md content
-                        await ensureFileExists(prependFilePath)
                         mergedContent += await readFileContent(prependFilePath)
 
                         // 2. Add the ASCII file structure if requested
@@ -239,7 +239,6 @@ export function activate(context: ExtensionContext) {
                         }
 
                         // 5. Read .append.md content
-                        await ensureFileExists(appendFilePath)
                         const appendContent = await readFileContent(appendFilePath)
                         if (appendContent) {
                             mergedContent += `\n\n${appendContent}`

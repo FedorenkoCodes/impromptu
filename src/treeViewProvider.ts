@@ -33,6 +33,7 @@ export class ImpromptuTreeDataProvider implements TreeDataProvider<FileTreeItem>
 
     private selectedFileUris: Set<string> = new Set()
     private useGitignore: boolean = true
+    private includeAsciiTree: boolean = false
 
     // Cache to hold all descendant file URIs for each directory.
     private descendantFilesCache: Map<string, Uri[]> = new Map()
@@ -72,8 +73,27 @@ export class ImpromptuTreeDataProvider implements TreeDataProvider<FileTreeItem>
         await this.context.workspaceState.update(SELECTION_STATE_KEY, Array.from(this.selectedFileUris))
     }
 
+    /**
+     * Sets the state for including the ASCII tree and triggers a recalculation.
+     * Called from the ActionsViewProvider when the webview sends an update.
+     * @param state The new state from the checkbox.
+     */
+    public async setAsciiTreeState(state: boolean): Promise<void> {
+        if (this.includeAsciiTree !== state) {
+            this.includeAsciiTree = state
+            // The recalculation will fire the event that updates the webview's count
+            await this.recalculateAndNotify()
+        }
+    }
+
     public async recalculateAndNotify(): Promise<void> {
-        const filesCharCount = await calculateTotalPromptSize(this.workspaceRoot, this.selectedFileUris)
+        const selectedFiles = this.getSelectedFiles()
+        const filesCharCount = await calculateTotalPromptSize(
+            this.workspaceRoot,
+            this.selectedFileUris,
+            this.includeAsciiTree,
+            selectedFiles
+        )
         this._onSelectionDidChange.fire({ filesCharCount })
     }
 

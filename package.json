@@ -3,7 +3,7 @@
   "displayName": "Impromptu",
   "description": "Write prompts for AI LLM from your files",
   "repository": "https://github.com/FedorenkoCodes/impromptu",
-  "version": "0.1",
+  "version": "0.1.0",
   "engines": {
     "vscode": "^1.101.0"
   },
@@ -85,12 +85,12 @@
       {
         "command": "impromptu.disableGitignoreFilter",
         "title": "Disable .gitignore Filter",
-        "icon": "$(filter)"
+        "icon": "$(circle-slash)"
       },
       {
         "command": "impromptu.enableGitignoreFilter",
         "title": "Enable .gitignore Filter",
-        "icon": "$(circle-slash)"
+        "icon": "$(filter)"
       }
     ],
     "menus": {
