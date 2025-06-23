@@ -233,7 +233,7 @@ export function activate(context: ExtensionContext) {
                             const relativePath = workspace.asRelativePath(filePath, false)
                             const fileContent = await readFileContent(filePath)
                             const formattedFile = fileContentTemplate
-                                .replace("{filePath}", relativePath)
+                                .replaceAll("{filePath}", relativePath)
                                 .replace("{fileContent}", fileContent)
                             mergedContent += `\n\n${formattedFile}`
                         }
